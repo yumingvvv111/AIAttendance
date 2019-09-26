@@ -1,0 +1,18 @@
+{
+  "name": "ai-attendance",
+  "version": "1.0.0",
+  "description": "AI attendance",
+  "main": "main.js",
+  "scripts": {
+    "test": "test"
+  },
+  "keywords": [
+    "ai",
+    "attendance"
+  ],
+  "author": "中本聪",
+  "license": "ISC",
+  "dependencies": {
+    "@kqtec/graphql-uni-app-client": "github:kqtec/graphql-uni-app-client"
+  }
+}
