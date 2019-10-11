@@ -30,10 +30,12 @@ const msg = (title, duration = 1500, mask = false, icon = 'none') => {
 }
 const request = (query, name, handle) => {
 	const client = new app.$client({
-		uri: 'http://127.0.0.1:5001/graphql',
-		// uri: 'http://39.97.224.231:5001/graphql'
+		// uri: 'http://127.0.0.1:5001/graphql',
+		// uri: 'http://192.168.1.128:5001/graphql',
+		// uri: 'http://39.97.224.231:5001/graphql',
+		uri: 'http://yumingvvv.thanks.echosite.cn/graphql'
 	});
-	client.query(query).then(result => {
+	client.query(query, name).then(result => {
 		console.log(result);
 		let statusCode = result.statusCode;
 		if (statusCode === 200) {

@@ -96,7 +96,7 @@
 				    }`;
 
 
-				this.$api.request(query, 'login', (data) => {
+				this.$api.request(query, {}, (data) => {
 					uni.navigateBack();
 					this.login({nickname: username, ...data});
 				});

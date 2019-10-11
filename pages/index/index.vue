@@ -153,7 +153,7 @@
 					result: '异常'
 				};
 				
-				if (!checkHasPunched(type)) {
+				if (!checkHasPunched.call(this, type)) {
 					if (type === 'signIn') {
 						if (time <= checkPoint[0]) {
 							result.result = '正常';
@@ -199,17 +199,40 @@
 							console.log(this.$api, 7777);
 						}
 					});
+					
+					//todo
+					
+					const query =
+						`query punch{
+					      punch(startTime:"sadmin", endTime: "sadmin"){
+					        code
+					        message
+					        data{
+					          accessToken
+					          expiresIn
+					        }
+					      }
+					    }`;
+					
+					
+					this.$api.request(query, {}, (data) => {
+						
+						console.log(data);
+						// uni.navigateBack();
+						// this.login({nickname: username, ...data});
+					});
+					
 				}
 
 				function checkHasPunched(type) {
 					let am = false;
 					let pm = false;
 					let punchStatus = uni.getStorageSync('punchStatus');
-					
+					let self = this;
 					if (punchStatus) {
 						var date = punchStatus.date;
 						//判断是否是当天
-						if (this.checkIsToday(date)) {
+						if (self.checkIsToday(date)) {
 							if (type === 'signIn') {
 								if (punchStatus.am) {
 									alert('您已签到');
