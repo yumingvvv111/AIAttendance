@@ -33,7 +33,7 @@
 						</button>
 					</view>
 				</view>
-				
+
 				<view class="cu-bar bg-white solid-bottom" v-for="(item, index) in punchList" :key="index">
 					<view class="action" style="color:#ccc">
 						<text class="text-orange"><span></span></text>{{item.type}}{{item.time}}
@@ -49,10 +49,10 @@
 	</view>
 </template>
 <script>
-	
 	export default {
 		data() {
 			return {
+				userInfo: {},
 				title: 'map',
 				punchList: [
 					// {
@@ -89,14 +89,24 @@
 				}
 			}
 		},
-		mounted(){
+		mounted() {
+			uni.getStorage({
+				key: 'userInfo',
+				success: (res) => {
+					console.log(res);
+					if (res.errMsg === "getStorage:ok") {
+						this.userInfo = res.data;
+					}
+				},
+			});
+
 			uni.getStorage({
 				key: 'punchStatus',
 				success: (res) => {
 					let data = res.data;
 					console.log('get punchStatus success');
 					console.log(data);
-					if(this.checkIsToday(data.date)){
+					if (this.checkIsToday(data.date)) {
 						uni.getStorage({
 							key: 'punchList',
 							success: (res) => {
@@ -105,21 +115,21 @@
 								this.punchList = res.data;
 							}
 						});
-					}else{
+					} else {
 						uni.setStorage({
 							key: 'punchList',
 							data: [],
 							success: (res) => {
-								
+
 							}
 						});
 					}
 				}
 			});
 		},
-		
+
 		methods: {
-			checkIsToday(date){
+			checkIsToday(date) {
 				var time = (new Date(date)).getTime();
 				var now = new Date();
 				now = (now.toISOString()).match(/\d{4}-\d{2}-\d{2}/)[0];
@@ -152,35 +162,38 @@
 					time: (new Date(time)).toString().match(/\d{2}:\d{2}:\d{2}/)[0],
 					result: '异常'
 				};
-				
+
 				if (!checkHasPunched.call(this, type)) {
 					if (type === 'signIn') {
 						if (time <= checkPoint[0]) {
 							result.result = '正常';
 							alert(preText + '考勤正常');
 						} else if (time > checkPoint[0] && time <= checkPoint[1]) {
+							result.result = '迟到';
 							alert(preText + '您已迟到');
 						} else {
+							result.result = '旷工';
 							alert('计算旷工');
 						}
 					} else {
 						if (time >= checkPoint[2]) {
 							result.result = '正常';
 							alert(preText + '考勤正常');
-						}else{
+						} else {
+							result.result = '早退';
 							alert(preText + '不到下班时间哦');
 						}
 					}
-					
+
 					this.punchList.push(result);
-					
+
 					this.punchStatus.date = dateStr;
 					if (type === 'signIn') {
 						this.punchStatus.am = time;
 					} else {
 						this.punchStatus.pm = time;
 					}
-					
+
 					uni.setStorage({
 						key: 'punchList',
 						data: this.punchList,
@@ -189,39 +202,41 @@
 							console.log(this.$api, 7777);
 						}
 					});
-					
-					
+
+
 					uni.setStorage({
 						key: 'punchStatus',
 						data: this.punchStatus,
 						success: () => {
 							console.log('save punchStatus success');
-							console.log(this.$api, 7777);
 						}
 					});
-					
-					//todo
-					
+
 					const query =
-						`query punch{
-					      punch(startTime:"sadmin", endTime: "sadmin"){
-					        code
-					        message
-					        data{
-					          accessToken
-					          expiresIn
-					        }
-					      }
-					    }`;
-					
-					
-					this.$api.request(query, {}, (data) => {
-						
-						console.log(data);
+						`
+					mutation createPunch {
+					  createPunch(
+					    createPunchInput: {
+					      userId: "001"
+					      time: "${dateStr} ${result.time}"
+					      type: "${_type}"
+					      result: "${result.result}"
+					    }
+					  ) {
+					    code
+					    message
+					  }
+					}`;
+
+					this.$api.request(query, {
+						Authorization: "Bearer " + this.userInfo.accessToken
+					}, (data) => {
 						// uni.navigateBack();
 						// this.login({nickname: username, ...data});
+					}, (err) => {
+						console.log(err);
 					});
-					
+
 				}
 
 				function checkHasPunched(type) {
@@ -247,7 +262,7 @@
 								// 	alert('您已签退');
 								// 	pm = true;
 								// } else {
-									pm = false;
+								pm = false;
 								// }
 								return pm;
 							}
@@ -256,7 +271,7 @@
 							return false;
 						}
 					}
-					
+
 				}
 			},
 

@@ -82,7 +82,6 @@
 				};
 
 
-
 				const query =
 					`query login{
 				      login(username:"${username}", password: "${password}"){
@@ -97,6 +96,7 @@
 
 
 				this.$api.request(query, {}, (data) => {
+					debugger;
 					uni.navigateBack();
 					this.login({nickname: username, ...data});
 				});

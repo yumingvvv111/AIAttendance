@@ -5,10 +5,10 @@
 				<uni-view class="cu-bar search bg-white">
 					<uni-view class="search-form round">
 						<uni-text class="cuIcon-search"><span></span></uni-text>
-						<uni-input >
+						<uni-input>
 							<div class="uni-input-wrapper">
-								<div class="uni-input-placeholder" >2019-08-31 - 2019-09-02</div>
-								<form action="" class="uni-input-form"><input maxlength="140" step="" autocomplete="off" type="search" class="uni-input-input"></form>
+								<div class="uni-input-placeholder">2019-08-31 - 2019-09-02</div>
+								<form action="" class="uni-input-form"><input maxlength="140" step="" autocomplete="off" type="search" class="uni-input-input" @focus="open.bind(this)"></form>
 							</div>
 						</uni-input>
 					</uni-view>
@@ -24,7 +24,11 @@
 					<t-th>类型</t-th>
 					<t-th>结果</t-th>
 				</t-tr>
-				<t-tr v-for="item in tableList" :key="item.id">
+				<t-tr v-if="!hasLogin">
+					<t-td><a href="#" @click="$util.navTo('/pages/public/login')">请先登录</a></t-td>
+				</t-tr>
+				<!-- <t-tr v-else-if="punchList.length === 0" style="text-align: center;color:red;margin:0 auto; width: 100%;">无记录</t-tr> -->
+				<t-tr v-for="item in punchList" :key="item.id" v-else>
 					<t-td>{{ item.time }}</t-td>
 					<t-td>{{ item.name }}</t-td>
 					<t-td>{{ item.age }}</t-td>
@@ -49,6 +53,7 @@
 				</t-tr>
 			</t-table>
 		</view>
+		<uni-calendar ref="calendar" :insert="false" :lunar="true" :disable-before="false" :range="true" @change="calendarChange" />
 	</view>
 </template>
 
@@ -57,48 +62,72 @@
 	import tTh from '@/components/t-table/t-th.vue';
 	import tTr from '@/components/t-table/t-tr.vue';
 	import tTd from '@/components/t-table/t-td.vue';
+	import uniCalendar from '@/components/uni-calendar/uni-calendar.vue'
+	import {
+		mapState,
+		mapActions,
+		mapMutations
+	} from 'vuex';
 	export default {
 		components: {
 			tTable,
 			tTh,
 			tTr,
-			tTd
+			tTd,
+			uniCalendar
 		},
 		data() {
 			return {
 				isEdit: false,
-				tableList: [{
-						id: 0,
-						time: '2019-08-30',
-						name: '八维',
-						age: '外勤',
-						hobby: '正常'
-					},
-					{
-						id: 1,
-						time: '2019-08-30',
-						name: '八维',
-						age: '外勤',
-						hobby: '迟到'
-					},
-					{
-						id: 2,
-						time: '2019-08-30',
-						name: '八维',
-						age: '外勤',
-						hobby: '迟到'
-					},
-					{
-						id: 3,
-						time: '2019-08-30',
-						name: '八维',
-						age: '本部',
-						hobby: '早退'
-					}
-				]
+				tableList: []
 			};
 		},
+		mounted() {
+			const getPunchList = () => {
+				return new Promise((resolve, reject) => {
+					const query =
+						`
+											query punch{
+											punch(startTime:"a8", endTime: "1234"){
+											    code
+											    message
+											    data {
+											      time
+											      type
+											      result
+											    }
+											  }
+											}`;
+					this.$api.request(query, {}, (data) => {
+						resolve(data);
+					}, (err) => {
+						console.log(err);
+					});
+				});
+			}
+
+			this.$util.getUserInfo().then((userInfo) => {
+				let hasLogin = userInfo ? true : false;
+				this.pureLogin(userInfo);
+				if(hasLogin){
+					getPunchList().then((data) => {
+						this.update(data);
+					});
+				}
+			});
+			
+		},
+		computed: {
+			...mapState(['hasLogin', 'punchList'])
+		},
 		methods: {
+			calendarChange(){
+				alert(999)
+			},
+			open(){
+				console.log(this, 6767676767);
+				this.$refs.calendar.open();
+			},
 			change(e) {
 				console.log(e.detail);
 			},
@@ -107,7 +136,11 @@
 					title: item.name,
 					icon: 'none'
 				});
-			}
+			},
+			...mapActions({
+				update: 'updatePunchList'
+			}),
+			...mapMutations(['pureLogin']),
 		}
 	};
 </script>

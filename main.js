@@ -8,13 +8,30 @@ Vue.config.productionTip = false;
 Vue.prototype.$store = store;
 Vue.prototype.$client = client;
 
+
+
 App.mpType = 'app';
 
 let app = null;
 
 // #ifdef APP-PLUS
-	var alert = plus.nativeUI.alert;
+var alert = plus.nativeUI.alert;
 // #endif
+
+//跳转到某一个页面
+var navTo = async (url, permission) => {
+	let userInfo = await getUserInfo();
+	let hasLogin = !!(userInfo && userInfo.accessToken);
+	if (!hasLogin && !permission) {
+		url = '/pages/public/login';
+	}
+	
+	uni.navigateTo({
+		url
+	})
+}
+
+
 
 const msg = (title, duration = 1500, mask = false, icon = 'none') => {
 	//统一提示方便全局修改
@@ -28,22 +45,52 @@ const msg = (title, duration = 1500, mask = false, icon = 'none') => {
 		icon
 	});
 }
-const request = (query, name, handle) => {
+
+const getUserInfo = () => {
+	return new Promise((resolve, reject) => {
+		uni.getStorage({
+			key: 'userInfo',
+			success: (res) => {
+				console.log(res);
+				if (res.errMsg === "getStorage:ok") {
+					resolve(res.data);
+				}
+			},
+			fail: (ex) => {
+				resolve(ex.data);
+			}
+		});
+	});
+}
+
+const request = async (query, config, handle, fail) => {
+	const userInfo = await getUserInfo();
+	const token = userInfo && userInfo.accessToken;
+	const _headers = (config && config.headers) || {};
+	const queryName = config.name || query.match(/(?:query|mutation)([^\{]*)/)[1].trim();
 	const client = new app.$client({
 		// uri: 'http://127.0.0.1:5001/graphql',
 		// uri: 'http://192.168.1.128:5001/graphql',
 		// uri: 'http://39.97.224.231:5001/graphql',
-		uri: 'http://yumingvvv.thanks.echosite.cn/graphql'
+		uri: 'http://yumingvvv.thanks.echosite.cn/graphql',
+		headers: token ? ({ ...{
+				Authorization: "Bearer " + token
+			},
+			..._headers
+		}) : {}
 	});
-	client.query(query, name).then(result => {
-		console.log(result);
+	client.query(query).then(result => {
 		let statusCode = result.statusCode;
 		if (statusCode === 200) {
-			let _result = result.data.data['login'];
+			let _result = result.data.data[queryName]; //fixme
 			let data = _result.data;
-			console.log(_result, 111111);
 			if (_result.code === 200) {
-				handle(data);
+				if (data) {
+					handle(data);
+				} else {
+					alert(_result.message);
+				}
+
 			} else {
 				app.$api.msg('服务器错误');
 				console.log(_result.message);
@@ -51,6 +98,17 @@ const request = (query, name, handle) => {
 		} else {
 			app.$api.msg('网络错误');
 		}
+	}, err => {
+		console.log(err);
+		let code = (err.data && err.data.errors[0] && err.data.errors[0].extensions.code) || 0;
+		let msg = (err.data && err.data.errors[0] && err.data.errors[0].message) || '网络错误';
+		if(code  === 'UNAUTHENTICATED'){
+			msg = '请登录';
+		}
+		uni.showToast({
+			title: code,
+			icon: 'none'
+		})
 	});
 }
 
@@ -70,7 +128,9 @@ Vue.prototype.$api = {
 };
 
 Vue.prototype.$util = {
-	alert
+	alert,
+	navTo,
+	getUserInfo
 };
 
 app = new Vue({
