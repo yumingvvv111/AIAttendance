@@ -20,12 +20,13 @@ var alert = plus.nativeUI.alert;
 
 //跳转到某一个页面
 var navTo = async (url, permission) => {
+	let page = url.match(/\/([^\/]+)$/)[1];
+	const permissionPages = ['apply'];//todo
 	let userInfo = await getUserInfo();
 	let hasLogin = !!(userInfo && userInfo.accessToken);
-	if (!hasLogin && !permission) {
+	if (permissionPages.includes(page) && !hasLogin && !permission) {
 		url = '/pages/public/login';
 	}
-	
 	uni.navigateTo({
 		url
 	})
@@ -79,7 +80,21 @@ const request = async (query, config, handle, fail) => {
 			..._headers
 		}) : {}
 	});
+	
+	function errorHandler(err){
+		let code = (err.data && err.data.errors[0] && err.data.errors[0].extensions.code) || 0;
+		let msg = (err.data && err.data.errors[0] && err.data.errors[0].message) || '网络错误';
+		if(code  === 'UNAUTHENTICATED'){
+			msg = '请登录';
+		}
+		uni.showToast({
+			title: msg,
+			icon: 'none'
+		})
+	}
+	
 	client.query(query).then(result => {
+		console.log(result);
 		let statusCode = result.statusCode;
 		if (statusCode === 200) {
 			let _result = result.data.data[queryName]; //fixme
@@ -96,19 +111,11 @@ const request = async (query, config, handle, fail) => {
 				console.log(_result.message);
 			}
 		} else {
-			app.$api.msg('网络错误');
+			errorHandler(result);
 		}
 	}, err => {
 		console.log(err);
-		let code = (err.data && err.data.errors[0] && err.data.errors[0].extensions.code) || 0;
-		let msg = (err.data && err.data.errors[0] && err.data.errors[0].message) || '网络错误';
-		if(code  === 'UNAUTHENTICATED'){
-			msg = '请登录';
-		}
-		uni.showToast({
-			title: code,
-			icon: 'none'
-		})
+		errorHandler(err);
 	});
 }
 

@@ -7,7 +7,7 @@
 				</map>
 				<view class="cu-bar bg-white solid-bottom margin-top">
 					<view class="action">
-						<text class="cuIcon-title text-orange"><span></span></text>考勤时段1
+						<text class="cuIcon-title text-orange"><span></span></text>考勤时段1{{canPunchStatus}}
 					</view>
 
 				</view>
@@ -46,13 +46,20 @@
 				</view>
 			</view>
 		</view>
+		
 	</view>
 </template>
 <script>
+	import {
+		mapMutations,
+		mapState
+	} from 'vuex';
 	export default {
 		data() {
 			return {
+				inter: null,
 				userInfo: {},
+				type: '',
 				title: 'map',
 				punchList: [
 					// {
@@ -89,7 +96,21 @@
 				}
 			}
 		},
+		beforeUpdate(state){
+			// console.log(111111, this.punchStatus, this.canPunchStatus);
+			if(this.canPunchStatus){
+				this.attendance();
+				this.stopPunch();
+			}
+		},
+		// updated(state){
+		// 	console.log(222222, this.punchStatus, this.canPunchStatus);
+		// },
+		computed: {
+			...mapState(['canPunchStatus'])
+		},
 		mounted() {
+			
 			uni.getStorage({
 				key: 'userInfo',
 				success: (res) => {
@@ -129,15 +150,9 @@
 		},
 
 		methods: {
-			checkIsToday(date) {
-				var time = (new Date(date)).getTime();
-				var now = new Date();
-				now = (now.toISOString()).match(/\d{4}-\d{2}-\d{2}/)[0];
-				now = new Date(now);
-				now = now.getTime();
-				return now <= time + 24 * 60 * 60 * 1000;
-			},
-			punch(type) {
+			...mapMutations(['stopPunch']),
+			attendance(type) {
+				type = type || this.type;
 				var alert = this.$util.alert;
 				let date = new Date();
 				let year = date.getFullYear();
@@ -163,7 +178,7 @@
 					result: '异常'
 				};
 
-				if (!checkHasPunched.call(this, type)) {
+				if (!this.checkHasPunched.call(this, type)) {
 					if (type === 'signIn') {
 						if (time <= checkPoint[0]) {
 							result.result = '正常';
@@ -232,46 +247,67 @@
 						Authorization: "Bearer " + this.userInfo.accessToken
 					}, (data) => {
 						// uni.navigateBack();
-						// this.login({nickname: username, ...data});
+						this.login({nickname: username, ...data});
 					}, (err) => {
 						console.log(err);
 					});
-
+				}
+			},
+			//判断是否可以打卡
+			canPunch(){
+				return this.canPunchStatus;
+			},
+			checkHasPunched(type) {
+				var alert = this.$util.alert;
+				let am = false;
+				let pm = false;
+				let punchStatus = uni.getStorageSync('punchStatus');
+				let self = this;
+				if (punchStatus) {
+					var date = punchStatus.date;
+					//判断是否是当天
+					if (self.checkIsToday(date)) {
+						if (type === 'signIn') {
+							if (punchStatus.am) {
+								alert('您已签到');
+								am = true;
+							} else {
+								am = false;
+							}
+							return am;
+						}
+						if (type === 'signOff') {
+							// if (punchStatus.pm) {
+							// 	alert('您已签退');
+							// 	pm = true;
+							// } else {
+							pm = false;
+							// }
+							return pm;
+						}
+					} else {
+						am = pm = false;
+						return false;
+					}
 				}
 
-				function checkHasPunched(type) {
-					let am = false;
-					let pm = false;
-					let punchStatus = uni.getStorageSync('punchStatus');
-					let self = this;
-					if (punchStatus) {
-						var date = punchStatus.date;
-						//判断是否是当天
-						if (self.checkIsToday(date)) {
-							if (type === 'signIn') {
-								if (punchStatus.am) {
-									alert('您已签到');
-									am = true;
-								} else {
-									am = false;
-								}
-								return am;
-							}
-							if (type === 'signOff') {
-								// if (punchStatus.pm) {
-								// 	alert('您已签退');
-								// 	pm = true;
-								// } else {
-								pm = false;
-								// }
-								return pm;
-							}
-						} else {
-							am = pm = false;
-							return false;
-						}
-					}
-
+			},
+			
+			checkIsToday(date) {
+				var time = (new Date(date)).getTime();
+				var now = new Date();
+				now = (now.toISOString()).match(/\d{4}-\d{2}-\d{2}/)[0];
+				now = new Date(now);
+				now = now.getTime();
+				return now <= time + 24 * 60 * 60 * 1000;
+			},
+			punch(type) {
+				var alert = this.$util.alert;
+				//fixme
+				const useFace = true;
+				this.type = type;
+				if (useFace) {
+					this.$util.navTo('/pages/index/camera');
 				}
 			},
 

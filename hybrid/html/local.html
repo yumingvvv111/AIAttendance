@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>刷脸打卡</title>
+
+		<script type="text/javascript" src="https://js.cdn.aliyun.dcloud.net.cn/dev/uni-app/uni.webview.1.5.2.js"></script>
+		<style>
+			.overLoading {
+		            display: none;
+		            position: absolute;
+		            top: 0;
+		            left: 0;
+		            width: 100%;
+		            height: 100%;
+		            background-color: #f5f5f5;
+		            opacity:0.5;
+		            z-index: 1000;
+		       }
+		    .layoutLoading {
+		        display: none;
+		        position: absolute;
+		        top: 40%;
+		        left: 40%;
+		        width: 20%;
+		        height: 20%;
+		        z-index: 1001;
+		        text-align:center;
+		    }
+		
+	</style>
+	</head>
+	<body>
+		<div id="over" class="overLoading"></div>
+		<div id="layout" class="layoutLoading"><img style="width: 100px;height: 100px;" src="img/loadding.gif" /></div>
+		<div id="inMessage" style="width:100%;color:#ff0000;
+		text-align: center;margin-top:50px;font-size: 50px;"></div>
+		<img id="face" style="width:100%;height: 800px;" src="" />
+	</body>
+	<script type="text/javascript">
+		var jsBridgeReader = false;
+		document.addEventListener('UniAppJSBridgeReady', function() {
+			jsBridgeReader = true;
+			uni.getEnv(function(res) {
+				console.log('当前环境：' + JSON.stringify(res));
+			});
+		});
+		// 扩展API加载完毕后调用onPlusReady回调函数
+		document.addEventListener("plusready", onPlusReady, false);
+
+		var pusher = null;
+		var timecount;
+		// 快照
+		function snapshotPusher() {
+			pusher.snapshot(function(e) {
+				pusher.stop();
+				pusher.close();
+				var src = "file://" + e.tempImagePath
+				var reader = new plus.io.FileReader();
+				reader.onloadend = function(e) {
+					var speech = e.target.result; //base64图片   
+					document.getElementById("face").src = speech
+					writeToScreen("采集成功");
+					uni.postMessage({
+						data: {
+							photo: speech,
+						}
+					});
+				};
+				reader.readAsDataURL(src);
+				showLoading(false);
+			}, function(e) {
+				showLoading(false);
+				plus.nativeUI.alert("snapshot error: " + JSON.stringify(e));
+			});
+		}
+
+		// 扩展API加载完毕，现在可以正常调用扩展API 
+		function onPlusReady() {
+			// 获取设备默认的摄像头对象 
+			pusher = plus.video.createLivePusher('livepusher', {
+				url: '',
+				top: '100px',
+				left: '0px',
+				width: '100%',
+				height: '300px',
+				position: 'static'
+			});
+			plus.webview.currentWebview().append(pusher);
+			setTimeout(function() {
+				setFace()
+			}, 5000)
+
+		}
+
+		//采集人脸样本
+		function setFace() {
+			var countdown = 3;
+			//启动摄像头并开始捕捉人脸
+			timecount = window.setInterval(function() {
+
+				if (countdown > 0) {
+					writeToScreen(countdown + "秒后开始采集");
+				} else {
+					writeToScreen("正在采集，请稍后");
+				}
+				if (countdown <= 0) {
+					showLoading(true);
+					window.clearInterval(timecount);
+					countdown = 0;
+				}
+				if (countdown <= 2) {
+					snapshotPusher()
+				}
+				countdown--;
+
+			}, 1000);
+		}
+
+		function writeToScreen(message) {
+			var pre = document.getElementById('inMessage');
+			pre.innerHTML = message;
+		}
+
+
+
+		function showLoading(show) {
+			if (show) {
+				document.getElementById("over").style.display = "block";
+				document.getElementById("layout").style.display = "block";
+			} else {
+				document.getElementById("over").style.display = "none";
+				document.getElementById("layout").style.display = "none";
+			}
+		}
+	</script>
+</html>

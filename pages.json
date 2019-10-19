@@ -127,6 +127,15 @@
 		    		"bounce": "none"
 		    	}
 		    }
+		},
+		{
+		    "path" : "pages/index/camera",
+		    "style" : {
+		    	"navigationBarTitleText" : "刷脸打卡",
+		    	"app-plus": {
+		    		"bounce": "none"
+		    	}
+		    }
 		}
 	],
 	"globalStyle": {

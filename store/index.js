@@ -8,7 +8,8 @@ const store = new Vuex.Store({
 	state: {
 		hasLogin: false,
 		userInfo: {},
-		punchList: []
+		punchList: [],
+		canPunchStatus: false
 	},
 	// getters: {
 	// 	isLogin: state => {
@@ -27,6 +28,12 @@ const store = new Vuex.Store({
 		}
 	},
 	mutations: {
+		stopPunch(state, provider){
+			state.canPunchStatus = false;
+		},
+		changePunchStauts(state, provider){
+			state.canPunchStatus = provider.canPunchStatus;
+		},
 		updatePunchList(state, provider) {
 			//todo
 			let arr = [];
@@ -45,8 +52,8 @@ const store = new Vuex.Store({
 			state.punchList = arr;
 		},
 		pureLogin(state, provider) {
-			state.hasLogin = true;
-			state.userInfo = provider;
+			state.hasLogin = provider.hasLogin || false;
+			state.userInfo = provider.userInfo;
 		},
 		login(state, provider) {
 			state.hasLogin = true;

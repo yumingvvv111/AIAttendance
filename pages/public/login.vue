@@ -96,7 +96,6 @@
 
 
 				this.$api.request(query, {}, (data) => {
-					debugger;
 					uni.navigateBack();
 					this.login({nickname: username, ...data});
 				});
