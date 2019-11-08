@@ -88,8 +88,9 @@
 			getPunchList() {
 				return new Promise((resolve, reject) => {
 					let reg = /\d{4}-\d{2}-\d{2}/g;
+					let today = new Date();
 					let startTime = (new Date(0).toISOString()).match(reg)[0];
-					let endTime = (new Date().toISOString()).match(reg)[0];
+					let endTime = (new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()).match(reg)[0];
 					if (this.timeRange) {
 						let match = this.timeRange.match(reg);
 						startTime = match[0];

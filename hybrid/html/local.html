@@ -2,9 +2,9 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>刷脸打卡</title>
+		<title>拍照</title>
 
-		<script type="text/javascript" src="https://js.cdn.aliyun.dcloud.net.cn/dev/uni-app/uni.webview.1.5.2.js"></script>
+		<script type="text/javascript" src="./uni.webview.1.5.2.js"></script>
 		<style>
 			.overLoading {
 		            display: none;
@@ -15,7 +15,7 @@
 		            height: 100%;
 		            background-color: #f5f5f5;
 		            opacity:0.5;
-		            z-index: 1000;
+		            z-index: 9000;
 		       }
 		    .layoutLoading {
 		        display: none;
@@ -24,51 +24,292 @@
 		        left: 40%;
 		        width: 20%;
 		        height: 20%;
-		        z-index: 1001;
+		        z-index: 9001;
 		        text-align:center;
 		    }
+			
+			.button-wrapper{
+				display: flex;
+				justify-content: space-between;
+				width: 100%;
+				height: 200px;
+				position: fixed;
+				bottom: 50px;
+				z-index: 9005;
+			}
+			
+			.button-wrapper button{
+				display: inline-block;
+				width: 180px;
+				height: 180px;
+				margin: 20px 30px;
+				/* border: 1px solid #F7F7F7; */
+				/* border-radius: 90px; */
+				background-size: contain;
+				background-position: center center;
+				background-repeat: no-repeat;
+				border: none;
+				background-color: transparent;
+				opacity: 0.1;
+				
+			}
+			.button-wrapper button#cancel{
+				background-image: url('./img/reduce.png');
+			}
+			
+			.button-wrapper button#confirm{
+				background-image: url('./img/add.png');
+			}
+			
+			.button-wrapper button#camera{
+				background-image: url('./img/camera.png');
+			}
+			.mask{
+				position: fixed;
+				left: 0;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				background: #000;
+				opacity: 0.3;
+				z-index: 99999;
+				color: #fff;
+				font-size: 3rem;
+				font-weight: bold;
+				text-align: center;
+				vertical-align: middle;
+			}
+			.mask span{
+				display: block;
+				position: relative;
+				bottom: 10px;
+				width: 100%;
+				height: auto;
+				padding-top: 20px;
+				left: 0;
+			}
+			.input-wrapper{
+				display: flex;
+				justify-content: center;
+				flex-direction: column;
+				width: 120%;
+				height: 120%;
+				z-index: 9006;
+				font-size: 18px;
+				position: absolute;
+				left:0;
+				top:0;
+				right: 0;
+				bottom: 0;
+				padding: 0 10px;
+				background: #000;
+				opacity: 0.8;
+				text-align: center;
+			}
+			
+			.input-wrapper input{
+				font-size: 40px;
+				margin: 0 10px;
+				width: 80%;
+				margin: 10px;
+				padding: 10px;
+				height: 80px;
+				border: 1px solid #ccc;
+				text-align: center;
+				position: relative;
+				left: 50%;
+				transform: translate(-50%, -50%);
+			}
+			#topMessage{
+				position: absolute;
+				top:10px;
+				width: 100%;
+				text-align: center;
+				color: red;
+				height: 80px;
+				font-size: 2.5rem;
+				display: none;
+				z-index: 9008;
+			}
 		
 	</style>
 	</head>
 	<body>
 		<div id="over" class="overLoading"></div>
-		<div id="layout" class="layoutLoading"><img style="width: 100px;height: 100px;" src="img/loadding.gif" /></div>
+		<div id="layout" class="layoutLoading"><img style="width: 100px;height: 100px;" src="./img/loadding.gif" /></div>
 		<div id="inMessage" style="width:100%;color:#ff0000;
-		text-align: center;margin-top:50px;font-size: 50px;"></div>
-		<img id="face" style="width:100%;height: 800px;" src="" />
+		text-align: center;margin-top:20px;font-size: 50px; position: fixed; z-index: 999;"></div>
+		<img id="face" style="width:100%;height: 800px; display: block; visibility: hidden;" src="about:blank" />
+		<canvas id="compressPhoto" width="400" height="500" style="border: 1px solid red;  visibility: hidden;display: block;"></canvas>
+		<div class="input-wrapper" style="display:none;">
+			<input type="text" name="name" placeholder="用户名(字母或数字)"/>
+			<input type="password" name="password" placeholder="密码(6个字符以上)"/>
+			<input id="submit" type="submit" value="提交" style="background: #00adff; height: 90px;"/>
+		</div>
+		<div class="button-wrapper">
+			<button id="cancel" style="visibility: hidden"> </button>
+			<button id="camera"> </button>
+			<button id="confirm" style="visibility: hidden"> </button>
+		</div>
+		<div class="mask" style="display:none;"><span>处理中...</span></div>
+		<div id="topMessage"></div>
 	</body>
 	<script type="text/javascript">
 		var jsBridgeReader = false;
+		var screenWidth = 0;
+		var screenHeight = 0;
+		var pixelRatio = 0;
+		var timer1 = null;
+		var timer2 = null;
+		var speech = null;
+		var captured = false;
+		var reg = /\?(.*)$/;
+		
+		var urlParam = null;
+		var urlParamObj = {};
+		
+		var match = location.href.match(reg);
+		
+		if(match){
+			localStorage.setItem('urlParam', match[1]);
+			location.href = location.href.replace(/\?.*$/, '');
+		}
+		
+	    urlParam = localStorage.getItem('urlParam');
+		if(urlParam){
+			urlParamObj = getUrlParams(urlParam);
+		}
+		
+		function getUrlParams (url){
+			var obj = {};
+			
+			if(url.indexOf('&') === -1){
+				var keyVal = url.split('=');
+				var key = keyVal[0];
+				var val = keyVal[1];
+				obj[key] = val;
+			}
+		 	return obj;
+		 }
+		 
+		 
+		// window.onunload = function(){
+		// 	localStorage.removeItem('urlParam');
+		// };
 		document.addEventListener('UniAppJSBridgeReady', function() {
 			jsBridgeReader = true;
+			
+			
 			uni.getEnv(function(res) {
 				console.log('当前环境：' + JSON.stringify(res));
 			});
-		});
-		// 扩展API加载完毕后调用onPlusReady回调函数
-		document.addEventListener("plusready", onPlusReady, false);
+			document.getElementById('cancel').onclick = function(event) {
+				var faceElement = document.getElementById("face");
+				faceElement.style.visibility = 'hidden';
+				document.querySelector('.mask').style.display = 'none';
+				// pusher.resume();
+				document.getElementById('inMessage').innerHTML = '';
+				onPlusReady();
+			}
 
-		var pusher = null;
-		var timecount;
+			document.getElementById('camera').onclick = function(event) {
+				// document.querySelector('.mask').style.display = 'block';
+				showLoading(true);
+				document.querySelector('.mask').style.display = 'block';
+				snapshotPusher();
+			}
+
+			document.getElementById('submit').onclick = document.getElementById('confirm').onclick = function(event) {
+				clearTimeout(timer2);
+				document.querySelector('.mask').style.display = 'none';
+				var nameElement = document.getElementsByName('name')[0];
+				var passwordElement = document.getElementsByName('password')[0];
+				var nameVal = nameElement.value.trim();
+				var passVal = passwordElement.value.trim();
+				var topMessageElement = document.getElementById('topMessage');
+				
+				if(urlParamObj.p === 'faceRegister'){
+					if(nameVal === ''){
+						topMessageElement.style.display = 'block';
+						topMessageElement.innerHTML = '请输入用户名';
+						event.preventDefault();
+						event.stopPropagation();
+						return false;
+					}
+					
+					if(passVal === ''){
+						topMessageElement.style.display = 'block';
+						topMessageElement.innerHTML = '请输入密码';
+						event.preventDefault();
+						event.stopPropagation();
+						return false;
+					}
+					
+					if(passVal.length < 6){
+						topMessageElement.style.display = 'block';
+						topMessageElement.innerHTML = '密码长度太短';
+						event.preventDefault();
+						event.stopPropagation();
+						return false;
+					}
+				}
+				
+				timer2 = setTimeout(function() {
+					uni.postMessage({
+						data: {
+							photo: speech,
+							name: nameElement.value,
+							password: passwordElement.value
+						}
+					});
+					
+					uni.navigateBack();
+				}, 1000);
+			}
+		});
+
+
+		// 扩展API加载完毕后调用onPlusReady回调函数
+		
+		document.addEventListener("plusready", onPlusReady, false);
+		
+
 		// 快照
 		function snapshotPusher() {
+			clearTimeout(timer1);
 			pusher.snapshot(function(e) {
 				pusher.stop();
 				pusher.close();
 				var src = "file://" + e.tempImagePath
 				var reader = new plus.io.FileReader();
 				reader.onloadend = function(e) {
-					var speech = e.target.result; //base64图片   
-					document.getElementById("face").src = speech
-					writeToScreen("采集成功");
-					uni.postMessage({
-						data: {
-							photo: speech,
+					var faceImg = document.getElementById("face");
+					var myCanvas = document.getElementById('compressPhoto');
+					var ctx = myCanvas.getContext("2d");
+					speech = e.target.result; //base64图片   
+					faceImg.src = speech;
+					faceImg.style.visibility = 'visible';
+					faceImg.style.width = screenWidth * pixelRatio + 'px';
+					faceImg.style.height = (screenHeight - 235) * pixelRatio + 'px';
+
+					timer1 = setTimeout(function() {
+						ctx.drawImage(faceImg, 5, 5, screenWidth * pixelRatio * pixelRatio, screenHeight * pixelRatio * pixelRatio,
+							0, 0, 400, 800);
+						speech = myCanvas.toDataURL();
+						writeToScreen("拍照成功");
+						// document.querySelector('.captured').style.display = 'none';
+						showLoading(false);
+						showConfirmButton(true);
+						document.querySelector('.mask').style.display = 'none';
+						console.log(5555555);
+						console.log(urlParamObj.p);
+						if(urlParamObj.p === 'faceRegister'){
+							document.querySelector('.input-wrapper').style.display = 'flex';
 						}
-					});
+						
+					}, 500);
 				};
 				reader.readAsDataURL(src);
-				showLoading(false);
 			}, function(e) {
 				showLoading(false);
 				plus.nativeUI.alert("snapshot error: " + JSON.stringify(e));
@@ -78,18 +319,25 @@
 		// 扩展API加载完毕，现在可以正常调用扩展API 
 		function onPlusReady() {
 			// 获取设备默认的摄像头对象 
+			
+			// plus.webview.WebviewOverrideResourceOptions
+			
+			// console.log(JSON.stringify(plus.webview.getDisplayWebview()));
+			
+			screenWidth = plus.screen.resolutionWidth;
+			screenHeight = plus.screen.resolutionHeight;
+			pixelRatio = plus.screen.scale;
 			pusher = plus.video.createLivePusher('livepusher', {
 				url: '',
-				top: '100px',
+				top: '35px',
 				left: '0px',
-				width: '100%',
-				height: '300px',
+				// width: '100%',
+				// height: '600px',
+				width: screenWidth + 'px',
+				height: (screenHeight - 235) + 'px',
 				position: 'static'
 			});
 			plus.webview.currentWebview().append(pusher);
-			setTimeout(function() {
-				setFace()
-			}, 5000)
 
 		}
 
@@ -121,9 +369,15 @@
 			var pre = document.getElementById('inMessage');
 			pre.innerHTML = message;
 		}
-
-
-
+		
+		
+		function showConfirmButton(isShow){
+			var e1 = document.getElementById('cancel');
+			var e2 = document.getElementById('confirm');
+			var display = isShow ? 'visible' : 'hidden';
+			e1.style.visibility = display;
+			e2.style.visibility = display;
+		}
 		function showLoading(show) {
 			if (show) {
 				document.getElementById("over").style.display = "block";
@@ -133,5 +387,6 @@
 				document.getElementById("layout").style.display = "none";
 			}
 		}
+		
 	</script>
 </html>

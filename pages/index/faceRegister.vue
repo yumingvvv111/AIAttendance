@@ -28,14 +28,21 @@
 		},
 		onLoad(options) {
 			let {screenWidth, screenHeight, pixelRatio} = this.globalInfo.systemInfo;
-				this.url = this.url + '?p=camera';
+				this.url = this.url + '?p=faceRegister'
+				// this.globalInfo.test = 11111;
+				// try {
+				//     uni.setStorageSync('web_param', '?p=3');
+				// } catch (e) {
+				//     console.log('set web_param error');
+				// }
 				 //+ `?screenWidth=${screenWidth}&screenHeight=${screenHeight}&pixelRatio=${pixelRatio}`;
 			// this.getMessage('999');
 		},
+		
 		mounted(){
 			pages = getCurrentPages();
-			
 		},
+		
 		// computed: {
 		// 	...mapState(['canPunchStatus')
 		// },
@@ -44,14 +51,19 @@
 			getMessage(data) {
 				let paramData = data.target.data[0];
 				let imgData = paramData && paramData.photo;
-				console.log(data);
+				let name = paramData && paramData.name;
+				let password = paramData && paramData.password;
 				
-				console.log(data.target);
+				// console.log(imgData);
+				// console.log(name);
+				// console.log(password);
+				
+				
 				// let imgData = data;
 				// console.log(imgData);
 				//获得拍照之后的base64数据
-				// console.log(imgData, 33333333);
 				if (imgData) {
+					
 					var prevPage = pages[pages.length - 2];
 					// #ifdef H5
 					prevPage.showTip('照片处理中...')
@@ -59,40 +71,62 @@
 					// #ifndef H5
 					prevPage.$vm.showTip('照片处理中...')
 					// #endif
+					
 					//发请求
 					//fixme
 					const query =
-						`query faceLogin{
-					      faceLogin(img:"${imgData}"){
+						`mutation faceRegister{
+					      faceRegister(img:"${imgData}", name:"${name}", password:"${password}"){
 					        code
 					        message
 					        data{
-					            tokenInfo{
-								accessToken
-								expiresIn
-							}
-					          userInfoData{
-								  userId
-								  username
-								  mobile
-								  email
-							}
-								  }
+					              status
+					              tokenInfo{
+					                accessToken
+					                expiresIn
+					              }
+					              userInfoData{
+					                 userId
+					                 username
+					                 mobile
+					                 email
+					              }
+					            }
 								  }
 								}`;
-					
-					this.$api.request(query, {}, (data) => {
+						
+					this.$api.request(query, {}, (data, message) => {
+						var pages = getCurrentPages();
+						var prevPage = pages[pages.length - 1];
+						console.log(pages.length);
+						console.log(prevPage.$vm.hideTip);
 						// #ifdef H5
 						prevPage.hideTip()
 						// #endif
 						// #ifndef H5
 						prevPage.$vm.hideTip()
 						// #endif
-						this.changePunchStauts({canPunchStatus: true});
+						
+						if(data.status == 1){
+							this.login({nickname: data.userInfoData.username, ...data.userInfoData, ...data.tokenInfo});
+						}else{
+							
+							setTimeout(() => {
+								
+								// #ifdef H5
+								prevPage.showTip(message)
+								// #endif
+								// #ifndef H5
+								prevPage.$vm.showTip(message)
+								// #endif
+								
+							}, 2000);
+						}
+						// this.changePunchStauts({canPunchStatus: true});
 						// uni.navigateBack();
 						// this.$util.alert('恭喜您' + data.userInfoData.username + '打卡成功！');
 						//todo
-						this.login({nickname: data.userInfoData.username, ...data.userInfoData, ...data.tokenInfo});
+						
 					}, err => {
 						
 					});

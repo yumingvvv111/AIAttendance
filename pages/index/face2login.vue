@@ -26,15 +26,14 @@
 				url: '/hybrid/html/local.html'
 			};
 		},
-		onLoad(options) {
-			let {screenWidth, screenHeight, pixelRatio} = this.globalInfo.systemInfo;
-				this.url = this.url + '?p=camera';
-				 //+ `?screenWidth=${screenWidth}&screenHeight=${screenHeight}&pixelRatio=${pixelRatio}`;
-			// this.getMessage('999');
-		},
 		mounted(){
 			pages = getCurrentPages();
-			
+		},
+		onLoad(options) {
+			let {screenWidth, screenHeight, pixelRatio} = this.globalInfo.systemInfo;
+				this.url = this.url + '?p=face2login';
+				 //+ `?screenWidth=${screenWidth}&screenHeight=${screenHeight}&pixelRatio=${pixelRatio}`;
+			// this.getMessage('999');
 		},
 		// computed: {
 		// 	...mapState(['canPunchStatus')
@@ -50,7 +49,7 @@
 				// let imgData = data;
 				// console.log(imgData);
 				//获得拍照之后的base64数据
-				// console.log(imgData, 33333333);
+				console.log(imgData, 33333333);
 				if (imgData) {
 					var prevPage = pages[pages.length - 2];
 					// #ifdef H5
@@ -80,7 +79,7 @@
 								  }
 								  }
 								}`;
-					
+						
 					this.$api.request(query, {}, (data) => {
 						// #ifdef H5
 						prevPage.hideTip()
@@ -89,6 +88,7 @@
 						prevPage.$vm.hideTip()
 						// #endif
 						this.changePunchStauts({canPunchStatus: true});
+						
 						// uni.navigateBack();
 						// this.$util.alert('恭喜您' + data.userInfoData.username + '打卡成功！');
 						//todo

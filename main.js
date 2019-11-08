@@ -3,20 +3,53 @@ import Vue from 'vue'
 import App from './App'
 import client from '@kqtec/graphql-uni-app-client'
 
+// 注册全局modal组件
+import chunLeiModal from '@/components/chunLei-modal/chunLei-modal.vue'
+Vue.component('chunLei-modal',chunLeiModal);
+
+
 Vue.config.productionTip = false;
 
 Vue.prototype.$store = store;
 Vue.prototype.$client = client;
 
+var globalInfo = {
+	systemInfo: null,
+	location: {
+		latitude: 0,
+		longitude: 0
+	}
+};
 
+Vue.prototype.globalInfo = globalInfo;
 
 App.mpType = 'app';
 
-let app = null;
+var app = null;
 
 // #ifdef APP-PLUS
 var alert = plus.nativeUI.alert;
 // #endif
+
+
+uni.getLocation({
+    type: 'wgs84',
+    success: function (res) {
+		globalInfo.location.latitude = res.latitude;
+		globalInfo.location.longitude = res.longitude;
+    }});
+
+
+uni.getSystemInfo({
+	success: (data) => {
+		globalInfo.systemInfo = data;
+		console.log(data, 11111111)
+	},
+	fail: (ex) => {
+		console.log('获取系统信息失败')},
+	complete: (res) => {
+		console.log(res)}
+});
 
 //跳转到某一个页面
 var navTo = async (url, permission) => {
@@ -84,8 +117,10 @@ const request = async (query, config, handle, fail) => {
 	function errorHandler(err){
 		let code = (err.data && err.data.errors[0] && err.data.errors[0].extensions.code) || 0;
 		let msg = (err.data && err.data.errors[0] && err.data.errors[0].message) || '网络错误';
-		if(code  === 'UNAUTHENTICATED'){
-			msg = '请登录';
+		if(err.statusCode === 404){
+			msg = err.data;
+		}else if(code  === 'UNAUTHENTICATED'){
+			msg = msg + '，请登录';//fixme
 		}
 		uni.showToast({
 			title: msg,
@@ -99,15 +134,15 @@ const request = async (query, config, handle, fail) => {
 		if (statusCode === 200) {
 			let _result = result.data.data[queryName]; //fixme
 			let data = _result.data;
-			if (_result.code === 200) {
+			if (_result.code === 200) {	
 				if (data) {
-					handle(data);
+					handle(data, _result.message);
 				} else {
 					alert(_result.message);
 				}
 
 			} else {
-				app.$api.msg('服务器错误');
+				app.$api.msg('服务器错误' + _result.message);
 				console.log(_result.message);
 			}
 		} else {

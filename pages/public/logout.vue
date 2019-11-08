@@ -1,3 +1,5 @@
+
+
 <template>
 	<view class="container">
 		<view class="left-bottom-sign"></view>
@@ -5,37 +7,32 @@
 		<view class="right-top-sign"></view>
 		<!-- 设置白色背景防止软键盘把下部绝对定位元素顶上来盖住输入框等 -->
 		<view class="wrapper">
-			<view class="left-top-sign">LOGIN</view>
+			<view class="left-top-sign">LOGOUT</view>
 			<view class="welcome">
-				欢迎回来！
+				欢迎注册！
 			</view>
 			<view class="input-content">
 				<view class="input-item">
 					<text class="tit">用户名</text>
-					<input type="string" :value="username" placeholder="请输入用户名" maxlength="11" data-key="username" @input="inputChange" />
+					<input type="string" :value="username" placeholder="请输入用户名( 字母和数字 )" maxlength="11" data-key="username" @input="inputChange" />
 				</view>
 				<view class="input-item">
 					<text class="tit">密码</text>
-					<input type="mobile" value="" placeholder="8-18位不含特殊字符的数字、字母组合" placeholder-class="input-empty" maxlength="20"
-					 password data-key="password" @input="inputChange" @confirm="toLogin" />
+					<input type="password" :value="password" placeholder="8-18位不含特殊字符的数字、字母组合" placeholder-class="input-empty" maxlength="20"
+					 password data-key="password" @input="inputChange" />
+				</view>
+				<view class="input-item">
+					<text class="tit">重复密码</text>
+					<input type="password" :value="repassword" placeholder="再输入一遍以上密码" placeholder-class="input-empty" maxlength="20"
+					 password data-key="repassword" @input="inputChange"/>
 				</view>
 			</view>
-			<button class="confirm-btn" @click="toLogin" :disabled="logining">登录</button>
-			
-			<div style="display: flex; justify-content:center; margin-top: 20px;">
-				<view class="forget-section" style="display: inline-block;margin:0 10px;">
-					忘记密码?
-				</view>
-				
-				<view @click="toLogout" class="forget-section" style="display: inline-block;margin:0 10px;">
-					注册
-				</view>
-			</div>
+			<button class="confirm-btn" @click="toLogout" :disabled="logining">注册</button>
 			
 		</view>
 		<view class="register-section">
-			还没有账号?
-			<text @click="toLogout">马上注册</text>
+			已有账号?
+			<text @click="toLogin">马上登录</text>
 		</view>
 	</view>
 </template>
@@ -50,6 +47,7 @@
 			return {
 				username: '',
 				password: '',
+				repassword: '',
 				logining: false
 			}
 		},
@@ -65,14 +63,15 @@
 			navBack() {
 				uni.navigateBack();
 			},
-			toLogout() {
-				this.$util.navTo('/pages/public/logout');
+			toLogin() {
+				this.$util.navTo('/pages/public/login');
 			},
-			async toLogin() {
+			async toLogout() {
 				this.logining = true;
 				const {
 					username,
-					password
+					password,
+					repassword
 				} = this;
 
 				/* 数据验证模块 fixme
@@ -84,27 +83,23 @@
 					return;
 				}
 				*/
-				const sendData = {
-					username,
-					password
-				};
-
 
 				const query =
-					`query login{
-				      login(username:"${username}", password: "${password}"){
-				        code
-				        message
-				        data{
-				          accessToken
-				          expiresIn
-				      }
-				      }
-				    }`;
-
+					`mutation register{
+					  register(registerUserInput: {
+						username: "${username}", 
+						password: "${password}", 
+						email:"", 
+						mobile:""
+					  }){
+						code
+						message
+					  }
+					}`;
+			
 
 				this.$api.request(query, {}, (data) => {
-					this.$util.navTo('pages/index/index');
+					this.$util.navTo('pages/public/login');
 					this.login({nickname: username, ...data});
 				});
 			}
@@ -256,7 +251,7 @@
 	}
 
 	.register-section {
-		position: absolute;
+		position: absolute;	
 		left: 0;
 		bottom: 50upx;
 		width: 100%;
@@ -270,4 +265,3 @@
 		}
 	}
 </style>
-

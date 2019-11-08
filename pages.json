@@ -129,6 +129,33 @@
 		    }
 		},
 		{
+		    "path" : "pages/index/face2login",
+		    "style" : {
+		    	"navigationBarTitleText" : "刷脸登录",
+		    	"app-plus": {
+		    		"bounce": "none"
+		    	}
+		    }
+		},
+		{
+		    "path" : "pages/index/faceRegister",
+		    "style" : {
+		    	"navigationBarTitleText" : "人脸录入",
+		    	"app-plus": {
+		    		"bounce": "none"
+		    	}
+		    }
+		},
+		{
+		    "path" : "pages/public/logout",
+		    "style" : {
+		    	"navigationBarTitleText" : "注册",
+		    	"app-plus": {
+		    		"bounce": "none"
+		    	}
+		    }
+		},
+		{
 		    "path" : "pages/index/camera",
 		    "style" : {
 		    	"navigationBarTitleText" : "刷脸打卡",
@@ -175,5 +202,15 @@
 				"text": "我的"
 			}
 	    ]
+	},
+	"condition" : { //模式配置，仅开发期间生效
+		"current": 0, //当前激活的模式(list 的索引项)
+		"list": [
+			{
+				"name": "", //模式名称
+				"path": "", //启动页面，必选
+				"query": "" //启动参数，在页面的onLoad函数里面得到
+			}
+		]
 	}
 }

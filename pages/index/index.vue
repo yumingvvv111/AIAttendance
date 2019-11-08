@@ -1,13 +1,13 @@
 <template>
 	<view>
-		<page-head :title="title"></page-head>
+		<view :title="title"></view>
 		<view class="uni-common-mt">
 			<view>
 				<map :latitude="latitude" :longitude="longitude" :markers="covers">
 				</map>
 				<view class="cu-bar bg-white solid-bottom margin-top">
 					<view class="action">
-						<text class="cuIcon-title text-orange"><span></span></text>考勤时段1{{canPunchStatus}}
+						<text class="cuIcon-title text-orange"><span></span></text>考勤时段
 					</view>
 
 				</view>
@@ -47,9 +47,25 @@
 			</view>
 		</view>
 		
+		<!-- <uni-popup ref="popup" type="center" 
+		style="z-index: 999999;z-index: 999999;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+	width: 100%;
+	height: 100%;
+	text-align: center;
+	color: #fff;
+    transform: translate(-50%, -50%); background: #000; opacity: 0.3; padding: 20px; display: none;">{{ tipContent}}</uni-popup> -->
+	
+	<chunLei-modal :value="showPop" type="custom" navMask="true" nav="true" style="color:#fff;font-size: 23px;">
+		{{tipContent}}
+	    </chunLei-modal>
 	</view>
+	
 </template>
 <script>
+	import uniPopup from '@/components/uni-popup/uni-popup.vue';
 	import {
 		mapMutations,
 		mapState
@@ -57,10 +73,12 @@
 	export default {
 		data() {
 			return {
+				showPop: false,
 				inter: null,
 				userInfo: {},
 				type: '',
 				title: 'map',
+				tipContent: '',
 				punchList: [
 					// {
 					// type: '上班',
@@ -73,15 +91,6 @@
 				covers: [{
 					latitude: 40.0418585238,
 					longitude: 116.2998747826,
-					// #ifdef APP-PLUS
-					iconPath: '../../../static/app-plus/location@3x.png',
-					// #endif
-					// #ifndef APP-PLUS
-					iconPath: '../../../static/location.png',
-					// #endif
-				}, {
-					latitude: 39.90,
-					longitude: 116.39,
 					// #ifdef APP-PLUS
 					iconPath: '../../../static/app-plus/location@3x.png',
 					// #endif
@@ -110,6 +119,19 @@
 			...mapState(['canPunchStatus'])
 		},
 		mounted() {
+			
+			
+			
+		
+		
+			uni.getLocation({
+			    type: 'wgs84',
+			    success: (res) => {
+					this.latitude = res.latitude;
+					this.longitude = res.longitude;
+					this.covers[0]['latitude'] = res.latitude;
+					this.covers[0]['longitude'] = res.longitude;
+			    }});
 			
 			uni.getStorage({
 				key: 'userInfo',
@@ -151,6 +173,18 @@
 
 		methods: {
 			...mapMutations(['stopPunch']),
+			showTip(text){
+				this.showPop = true;
+				this.tipContent = text;
+				// this.$refs.popup.open();
+				// this.$refs.popup.display = 'block';
+				
+			},
+			hideTip(){
+				this.showPop = false;
+				// this.$refs.popup.close();
+				// this.$refs.popup.display = 'none';
+			},
 			attendance(type) {
 				type = type || this.type;
 				var alert = this.$util.alert;
@@ -177,6 +211,8 @@
 					time: (new Date(time)).toString().match(/\d{2}:\d{2}:\d{2}/)[0],
 					result: '异常'
 				};
+				//ymtodo
+				// if(this.globalInfo.location.latitude)
 
 				if (!this.checkHasPunched.call(this, type)) {
 					if (type === 'signIn') {
